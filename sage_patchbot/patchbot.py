@@ -1052,7 +1052,6 @@ class Patchbot(object):
 
                 # ------------- pull and apply -------------
                 pull_from_trac(self.sage_root, ticket['id'], force=True,
-                               use_ccache=self.config['use_ccache'],
                                safe_only=self.config['safe_only'])
                 t.finish("Apply")
                 state = 'applied'
