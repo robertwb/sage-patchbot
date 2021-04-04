@@ -327,11 +327,9 @@ def find_lazy_imports(a_file):
 
 def pycodestyle(ticket, **kwds):
     """
-    run ``pycodestyle --select=...`` on the modified .py files
+    run ``pycodestyle`` on the modified .py files
 
-    with --select=W605, E401, E701, E702
-
-    see http://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
+    see http://pycodestyle.pycqa.org/en/latest/intro.html
 
     we do not check the files names "all.py" and "__init__.py" that
     usually just contain unused import lines
@@ -341,7 +339,7 @@ def pycodestyle(ticket, **kwds):
     changed_files = list(subprocess.Popen(['git', 'diff', '--name-only', 'patchbot/base..patchbot/ticket_merged'], stdout=subprocess.PIPE).stdout)
     changed_files = [f.decode('utf8').strip("\n") for f in changed_files]
 
-    style = StyleGuide(select=['W605', 'E401', 'E701', 'E702'])
+    style = StyleGuide()
     errors = 0
     for a_file in changed_files:
         if os.path.exists(a_file) and os.path.splitext(a_file)[1] == '.py':
