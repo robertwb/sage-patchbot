@@ -1,0 +1,65 @@
+name: Run patchbot (Cygwin)
+
+on:
+  workflow_dispatch:
+    # Allow to run manually
+    inputs:
+      patchbot_ticket:
+        description: 'Tickets to test (e.g., 12345,23456)'
+        required: false
+
+jobs:
+  run_patchbot_cygwin:
+    runs-on: windows-latest
+
+    steps:
+      - run: |
+          git config --global core.autocrlf false
+          git config --global core.symlinks true
+
+      - uses: actions/checkout@v2
+        with:
+          repository: sagemath/sage
+          ref: develop
+
+      - name: install cygwin and test prerequisites with choco
+        shell: bash {0}
+        run: |
+          choco --version
+          PACKAGES="python38 python38-pip"
+          choco install $PACKAGES --source cygwin
+
+      - name: Download artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          # https://github.com/dawidd6/action-download-artifact
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          repo: sagemath/sage
+          workflow: ci-cygwin-standard.yml
+          workflow_conclusion: ""
+          search_artifacts: true
+          name: sage-local-commit-439907fd9a15f7abff7b000e9845806099a6d329-cygwin-standard
+          path: C:\\tools\\cygwin\\tmp
+
+      - name: Extract sage-local artifact
+        run: |
+          C:\\tools\\cygwin\\bin\\dash -l -c 'cd $(cygpath -u "$GITHUB_WORKSPACE") && .github/workflows/extract-sage-local.sh /tmp/sage-local-*.tar && tar --create --listed-incremental=/tmp/sage-local.snar --file /dev/null "${{ env.SAGE_LOCAL }}"'
+
+      - name: tox
+        run: |
+          C:\\tools\\cygwin\\bin\\bash -l -x -c 'cat /proc/cpuinfo'
+          C:\\tools\\cygwin\\bin\\bash -l -x -c 'python3.8 -m pip install tox'
+          C:\\tools\\cygwin\\bin\\bash -l -x -c 'cd $(cygpath -u "$GITHUB_WORKSPACE") && PREFIX="${{ env.SAGE_LOCAL }}" tox -e local-cygwin-choco-${{ matrix.pkgs }} -- config.status'
+
+      - name: Checkout patchbot
+        uses: actions/checkout@v2
+        with:
+          path: C:\\tools\\cygwin\\tmp\\patchbot
+
+      - name: Install patchbot and prerequisites
+        run: |
+          C:\\tools\\cygwin\\bin\\bash -l -x -c 'cd /tmp/patchbot && /sage/venv/bin/python3 -m pip install .'
+
+      - name: Run patchbot
+        run: |
+          C:\\tools\\cygwin\\bin\\bash -l -x -c '/sage/venv/bin/python3 -m sage_patchbot.patchbot --sage-root /sage --config=config.json $options || /sage/venv/bin/python3 -m sage_patchbot.patchbot --sage-root /sage --config=config.json --skip-base $options'
